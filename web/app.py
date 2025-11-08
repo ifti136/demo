@@ -128,15 +128,35 @@ class WebCoinTracker:
                 doc = self.doc_ref.get()
                 if doc.exists:
                     data = doc.to_dict()
-                    profile_data = data.get('profiles', {}).get(self.profile_name, {})
-                    # MODIFIED: Return all transactions here for analytics
-                    transactions = profile_data.get('transactions', [])
-                    settings.update(profile_data.get('settings', {}))
-            except Exception as e: print(f"Firebase load error: {e}")
+
+                    # --- THIS IS THE FIX ---
+                    if data is None: # Handles empty documents
+                        data = {}
+
+                    # 1. Check for the NEW data structure
+                    if 'profiles' in data:
+                        profile_data = data.get('profiles', {}).get(self.profile_name, {})
+                        transactions = profile_data.get('transactions', [])
+                        settings.update(profile_data.get('settings', {}))
+                    
+                    # 2. Check for the OLD data structure (backwards compatibility)
+                    elif 'transactions' in data or 'settings' in data:
+                        print(f"NOTE: Found old data structure for user {self.user_id}. Reading data...")
+                        transactions = data.get('transactions', [])
+                        settings.update(data.get('settings', {}))
+                        
+                        # We will migrate this data to the new structure on next save
+                        # But for now, we just read it.
+                    
+                    # 3. Else, it's a new/empty user, just use defaults
+                    
+            except Exception as e: 
+                print(f"Firebase load error for user {self.user_id}: {e}")
         else:
             profile_data = session.get('profiles', {}).get(self.profile_name, {})
             transactions = profile_data.get('transactions', [])
             settings.update(profile_data.get('settings', {}))
+        
         return self.validate_data(transactions, settings)
 
     # --- MODIFIED: Get paginated transactions with FILTERS ---
