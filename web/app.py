@@ -24,35 +24,27 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 db = None
 if FIREBASE_AVAILABLE:
     try:
-        # --- THIS IS THE CORRECTED LOGIC BLOCK ---
-        # Define required environment variable keys
         required_env_vars = ['FIREBASE_PROJECT_ID', 'FIREBASE_PRIVATE_KEY', 'FIREBASE_CLIENT_EMAIL']
-        
-        # Check if all required environment variables are present and not empty
         if all(os.getenv(key) for key in required_env_vars):
             print("Attempting to initialize Firebase with environment variables...")
-            # Sanitize the private key
             private_key = os.getenv('FIREBASE_PRIVATE_KEY').replace('\\n', '\n')
-            
             firebase_config = {
                 "type": "service_account",
                 "project_id": os.getenv('FIREBASE_PROJECT_ID'),
-                "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID', ''), # Optional
+                "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID', ''),
                 "private_key": private_key,
                 "client_email": os.getenv('FIREBASE_CLIENT_EMAIL'),
-                "client_id": os.getenv('FIREBASE_CLIENT_ID', ''), # Optional
+                "client_id": os.getenv('FIREBASE_CLIENT_ID', ''),
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token",
                 "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
             }
             cred = credentials.Certificate(firebase_config)
             print("Firebase credentials loaded from environment.")
-        # Fallback to local file if environment variables are not set
         elif os.path.exists('firebase-key.json'):
             print("Attempting to initialize Firebase with firebase-key.json...")
             cred = credentials.Certificate('firebase-key.json')
             print("Firebase credentials loaded from file.")
-        # If neither method works, raise an exception
         else:
             raise Exception("No Firebase configuration found. Set environment variables or provide firebase-key.json.")
         
@@ -61,12 +53,10 @@ if FIREBASE_AVAILABLE:
         
         db = firestore.client()
         print("✅ Firebase initialized successfully")
-        # --- END OF CORRECTED LOGIC BLOCK ---
-
     except Exception as e:
         print(f"❌ Firebase init error: {e}")
         db = None
-        FIREBASE_AVAILABLE = False # Explicitly set to false on failure
+        FIREBASE_AVAILABLE = False
 else:
     print("⚠️ Firebase library not found. Running in offline mode.")
 
@@ -81,7 +71,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- NEW: Admin Decorator ---
+# --- Admin Decorator ---
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -121,6 +111,13 @@ class WebCoinTracker:
             ]
         }
 
+    #
+    # --- THIS IS THE DATA FIX ---
+    # This function now correctly handles all user types:
+    # 1. New users (with 'profiles')
+    # 2. Old users (with top-level 'transactions')
+    # 3. Empty/corrupt users (with 'None' data)
+    #
     def get_data(self):
         transactions, settings = [], self.get_default_settings()
         if self.doc_ref:
@@ -129,51 +126,49 @@ class WebCoinTracker:
                 if doc.exists:
                     data = doc.to_dict()
 
-                    # --- THIS IS THE FIX ---
-                    if data is None: # Handles empty documents
+                    # --- FIX FOR EMPTY DOCS (stops the crash) ---
+                    if data is None: 
                         data = {}
 
-                    # 1. Check for the NEW data structure
+                    # 1. Check for the NEW data structure (what new users have)
                     if 'profiles' in data:
                         profile_data = data.get('profiles', {}).get(self.profile_name, {})
                         transactions = profile_data.get('transactions', [])
                         settings.update(profile_data.get('settings', {}))
                     
-                    # 2. Check for the OLD data structure (backwards compatibility)
+                    # 2. Check for the OLD data structure (BACKWARDS COMPATIBILITY)
                     elif 'transactions' in data or 'settings' in data:
                         print(f"NOTE: Found old data structure for user {self.user_id}. Reading data...")
                         transactions = data.get('transactions', [])
                         settings.update(data.get('settings', {}))
-                        
-                        # We will migrate this data to the new structure on next save
-                        # But for now, we just read it.
                     
                     # 3. Else, it's a new/empty user, just use defaults
                     
             except Exception as e: 
                 print(f"Firebase load error for user {self.user_id}: {e}")
         else:
+            # Fallback to session
             profile_data = session.get('profiles', {}).get(self.profile_name, {})
             transactions = profile_data.get('transactions', [])
             settings.update(profile_data.get('settings', {}))
         
         return self.validate_data(transactions, settings)
+    #
+    # --- END OF DATA FIX ---
+    #
 
-    # --- MODIFIED: Get paginated transactions with FILTERS ---
     def get_transactions_paginated(self, page=1, limit=20, filters=None):
         if filters is None:
             filters = {}
             
         transactions, _ = self.get_data() # Gets all transactions
         
-        # --- NEW: Apply Filters ---
         filtered_transactions = []
         for t in transactions:
-            # 1. Date Filter
             try:
                 t_date_str = t.get('date', '')
                 if not t_date_str:
-                    continue # Skip transactions with no date
+                    continue 
                     
                 t_date = datetime.fromisoformat(t_date_str.replace('Z', '+00:00')).date()
                 
@@ -187,13 +182,11 @@ class WebCoinTracker:
                         continue
             except (ValueError, TypeError) as e:
                 print(f"Skipping date filter for transaction {t.get('id')}: {e}")
-                pass # Skip date check if format is bad
+                pass 
 
-            # 2. Source Filter
             if filters.get('source') and filters['source'] != t.get('source'):
                 continue
             
-            # 3. Search Filter
             search_term = filters.get('search', '').lower()
             if search_term:
                 source_match = t.get('source', '').lower().find(search_term) != -1
@@ -201,16 +194,12 @@ class WebCoinTracker:
                 if not source_match and not amount_match:
                     continue
             
-            # If all checks pass, add to list
             filtered_transactions.append(t)
 
-        # --- End of Filters ---
-
-        # Sort transactions descending by date (newest first)
         sorted_transactions = sorted(filtered_transactions, key=lambda x: x.get('date', ''), reverse=True)
         
         total_transactions = len(sorted_transactions)
-        total_pages = (total_transactions + limit - 1) // limit # Ceiling division
+        total_pages = (total_transactions + limit - 1) // limit 
         
         start_index = (page - 1) * limit
         end_index = start_index + limit
@@ -232,27 +221,63 @@ class WebCoinTracker:
             settings['quick_actions'] = self.get_default_settings()['quick_actions']
         return transactions, settings
 
+    #
+    # --- THIS IS THE DATA MIGRATION FIX ---
+    # This function now automatically migrates old data to the new format upon saving.
+    #
     def save_data(self, transactions, settings):
         transactions = self.recalculate_balances(transactions)
         if self.doc_ref:
             try:
+                # 1. Get the current document state
                 doc = self.doc_ref.get()
-                profiles_data = doc.to_dict().get('profiles', {}) if doc.exists else {}
-                profiles_data[self.profile_name] = {'transactions': transactions, 'settings': settings, 'last_updated': dt_now_iso()}
-                self.doc_ref.set({'profiles': profiles_data}, merge=True)
+                data_to_save = {}
+                if doc.exists and doc.to_dict() is not None:
+                    data_to_save = doc.to_dict()
+
+                # 2. Get existing profiles or create a new profiles map
+                profiles_data = data_to_save.get('profiles', {})
+                
+                # 3. Set the data for the current profile
+                profiles_data[self.profile_name] = {
+                    'transactions': transactions, 
+                    'settings': settings, 
+                    'last_updated': dt_now_iso()
+                }
+                
+                # 4. Create the final object to save, ensuring new format
+                final_data = {
+                    'profiles': profiles_data,
+                    'last_active_profile': self.profile_name
+                }
+                
+                # 5. (THE MIGRATION) Check for and remove old top-level keys
+                if 'transactions' in data_to_save:
+                    final_data['transactions'] = firestore.DELETE_FIELD
+                if 'settings' in data_to_save:
+                    final_data['settings'] = firestore.DELETE_FIELD
+                
+                # 6. Overwrite the document with the new structure
+                self.doc_ref.set(final_data, merge=True) 
+                
                 return True
             except Exception as e:
                 print(f"Firebase save error: {e}")
                 return False
         else:
+            # Fallback to session
             profiles = session.get('profiles', {})
             profiles[self.profile_name] = {'transactions': transactions, 'settings': settings, 'last_updated': dt_now_iso()}
             session['profiles'] = profiles
             session.modified = True
             return True
+    #
+    # --- END OF DATA MIGRATION FIX ---
+    #
             
     def import_data(self, data):
-        """ Imports a whole data object (transactions and settings) """
+        # This function is now the primary way old users get their data
+        print(f"Importing data for user {self.user_id}...")
         transactions = data.get('transactions', [])
         settings = data.get('settings', self.get_default_settings())
         
@@ -293,7 +318,8 @@ class WebCoinTracker:
         if self.doc_ref:
             try:
                 doc = self.doc_ref.get()
-                if doc.exists: profiles.extend([p for p in doc.to_dict().get('profiles', {}).keys() if p != 'Default'])
+                if doc.exists and doc.to_dict() is not None: 
+                    profiles.extend([p for p in doc.to_dict().get('profiles', {}).keys() if p != 'Default'])
             except Exception as e: print(f"Firebase profiles error: {e}")
         profiles.extend([p for p in session.get('profiles', {}).keys() if p not in profiles])
         return sorted(list(set(profiles)))
@@ -303,7 +329,6 @@ class WebCoinTracker:
 @app.route('/login')
 def login():
     if 'user_id' in session:
-        # If user is admin, redirect to admin panel, else to main app
         if session.get('role') == 'admin':
             return redirect(url_for('admin_panel'))
         return redirect(url_for('index'))
@@ -322,7 +347,6 @@ def register():
         return jsonify({'success': False, 'error': 'Username and password required'}), 400
 
     users_ref = db.collection('users')
-    # Use lowercase for username uniqueness check
     username_lower = username.lower()
     if users_ref.where('username_lower', '==', username_lower).get():
         return jsonify({'success': False, 'error': 'Username already exists'}), 409
@@ -331,10 +355,10 @@ def register():
     hashed_password = generate_password_hash(password)
     users_ref.document(user_id).set({
         'username': username,
-        'username_lower': username_lower, # For case-insensitive login/search
+        'username_lower': username_lower,
         'password_hash': hashed_password,
         'created_at': dt_now_iso(),
-        'role': 'user' # NEW: Default role
+        'role': 'user'
     })
     return jsonify({'success': True})
 
@@ -348,12 +372,13 @@ def handle_login():
     password = data.get('password')
     
     users_ref = db.collection('users')
-    # Use lowercase for login
-    user_query = users_ref.where('username_lower', '==', username.lower()).limit(1).get()
     
+    # Since you already ran the migration, we can rely on 'username_lower'
+    user_query = users_ref.where('username_lower', '==', username.lower()).limit(1).get()
+        
     if not user_query:
         return jsonify({'success': False, 'error': 'Invalid username or password'}), 401
-        
+    
     user_doc = user_query[0]
     user_data = user_doc.to_dict()
     
@@ -361,18 +386,22 @@ def handle_login():
         session.permanent = True
         session['user_id'] = user_doc.id
         session['username'] = user_data.get('username')
-        session['role'] = user_data.get('role', 'user') # NEW: Store role in session
+        session['role'] = user_data.get('role', 'user') # Role is guaranteed by your migration
         
-        # Load last active profile
         user_data_doc = db.collection('user_data').document(user_doc.id).get()
         last_profile = 'Default'
-        if user_data_doc.exists:
+        
+        if user_data_doc.exists and user_data_doc.to_dict() is not None:
             last_profile = user_data_doc.to_dict().get('last_active_profile', 'Default')
         session['current_profile'] = last_profile
         
+        if session['role'] == 'admin':
+            return jsonify({'success': True, 'username': session['username'], 'redirect': url_for('admin_panel')})
+            
         return jsonify({'success': True, 'username': session['username'], 'redirect': url_for('index')})
     else:
         return jsonify({'success': False, 'error': 'Invalid username or password'}), 401
+
 
 @app.route('/api/logout', methods=['POST'])
 @login_required
@@ -383,7 +412,6 @@ def logout():
 @app.route('/api/user')
 @login_required
 def get_user():
-    # NEW: Return role
     return jsonify({
         'username': session.get('username'),
         'role': session.get('role', 'user'),
@@ -411,37 +439,33 @@ def get_all_data():
     balance = sum(t.get('amount', 0) for t in transactions)
     goal = settings.get('goal', 13500)
     today, week_start, month_start = datetime.now().date(), datetime.now().date() - timedelta(days=datetime.now().weekday()), datetime.now().date().replace(day=1)
+    
     today_earn, week_earn, month_earn = 0, 0, 0
-    
-    # --- NEW: Estimated Days Calculation (Start) ---
-    
     total_earnings = 0
     first_earning_date = None
     
     for t in transactions:
         if t.get('amount', 0) > 0:
             total_earnings += t['amount']
+            
             try:
-                t_date = datetime.fromisoformat(t['date'].replace('Z', '+00:00'))
-                if first_earning_date is None or t_date < first_earning_date:
-                    first_earning_date = t_date
+                t_date_obj = datetime.fromisoformat(t['date'].replace('Z', '+00:00'))
+                if first_earning_date is None or t_date_obj < first_earning_date:
+                    first_earning_date = t_date_obj
+                
+                t_date_stats = t_date_obj.date()
+                if t_date_stats == today: today_earn += t['amount']
+                if t_date_stats >= week_start: week_earn += t['amount']
+                if t_date_stats >= month_start: month_earn += t['amount']
+                
             except (ValueError, TypeError):
                 pass
-            
-            # This part is for the dashboard stats
-            try:
-                t_date_for_stats = datetime.fromisoformat(t['date'].replace('Z', '+00:00')).date()
-                if t_date_for_stats == today: today_earn += t['amount']
-                if t_date_for_stats >= week_start: week_earn += t['amount']
-                if t_date_for_stats >= month_start: month_earn += t['amount']
-            except (ValueError, TypeError): pass
 
     estimated_days = "N/A" # Default
-    
     if total_earnings > 0 and first_earning_date is not None:
         days_since_start = (datetime.now(timezone.utc) - first_earning_date).days
         if days_since_start == 0:
-            days_since_start = 1 # Avoid division by zero on the first day
+            days_since_start = 1
         
         avg_daily_earnings = total_earnings / days_since_start
         amount_remaining = goal - balance
@@ -450,7 +474,7 @@ def get_all_data():
             estimated_days = 0 # Goal complete
         elif avg_daily_earnings > 0:
             estimated_days = int(amount_remaining / avg_daily_earnings)
-    
+            
     total_spending = abs(sum(t['amount'] for t in transactions if t['amount'] < 0))
     
     earnings_breakdown = defaultdict(int)
@@ -465,23 +489,22 @@ def get_all_data():
 
     settings['firebase_available'] = FIREBASE_AVAILABLE and db is not None
     
-    # --- NEW: Populate history source filter ---
     all_sources = sorted(list(set(t['source'] for t in transactions)))
     settings['all_sources'] = all_sources
 
     return jsonify({
         'profile': profile_name, 
-        # NOTE: Transactions are still sent for analytics
         'transactions': transactions, 
         'settings': settings, 
         'balance': balance, 
         'goal': goal,
         'progress': min(100, int((balance / goal) * 100)) if goal > 0 else 0,
+        'estimated_days': estimated_days,
         'dashboard_stats': {'today': today_earn, 'week': week_earn, 'month': month_earn},
         'analytics': {
             'total_earnings': total_earnings, 
             'total_spending': total_spending, 
-            'net_balance': total_earnings - total_spending,
+            'net_balance': balance,
             'earnings_breakdown': dict(earnings_breakdown), 
             'spending_breakdown': dict(spending_breakdown), 
             'timeline': timeline,
@@ -489,7 +512,6 @@ def get_all_data():
         'success': True
     })
     
-# --- MODIFIED: Paginated History Route with FILTERS ---
 @app.route('/api/history')
 @login_required
 def get_history_paginated():
@@ -504,14 +526,12 @@ def get_history_paginated():
         page = 1
         limit = 20
         
-    # --- NEW: Build filters dict ---
     filters = {
         'date_from': request.args.get('date_from'),
         'date_to': request.args.get('date_to'),
         'search': request.args.get('search'),
         'source': request.args.get('source')
     }
-    # Remove empty filters
     filters = {k: v for k, v in filters.items() if v}
         
     data = tracker.get_transactions_paginated(page, limit, filters)
@@ -523,7 +543,6 @@ def handle_add_transaction():
     tracker = WebCoinTracker(session.get('current_profile', 'Default'), session.get('user_id'))
     data = request.json
     if tracker.add_transaction(data['amount'], data['source'], data['date']):
-        # Return all data so the frontend can update
         return get_all_data()
     return jsonify({'success': False, 'error': 'Failed to save transaction'}), 500
 
@@ -563,8 +582,6 @@ def handle_import_data():
     if tracker.import_data(data):
         return get_all_data()
     return jsonify({'success': False, 'error': 'Failed to import data'}), 500
-
-# --- Quick Action Endpoints ---
 
 @app.route('/api/add-quick-action', methods=['POST'])
 @login_required
@@ -650,7 +667,6 @@ def create_profile():
 @app.route('/admin')
 @login_required
 def admin_panel():
-    # Role check
     if session.get('role') != 'admin':
         return redirect(url_for('index'))
     return render_template('admin.html')
@@ -658,10 +674,8 @@ def admin_panel():
 @app.route('/api/admin/stats')
 @admin_required
 def get_admin_stats():
-    # 1. Get User Count
     total_users = len(list(db.collection('users').stream()))
     
-    # 2. Get 30-Day Chart Data
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     users_query = db.collection('users').where('created_at', '>=', thirty_days_ago.isoformat()).stream()
     
@@ -669,14 +683,13 @@ def get_admin_stats():
     for user in users_query:
         try:
             created_at_str = user.to_dict().get('created_at')
-            # Handle both offset-aware and naive datetime strings
             if '+' in created_at_str or 'Z' in created_at_str:
                 day = datetime.fromisoformat(created_at_str).strftime('%Y-%m-%d')
             else:
                 day = datetime.fromisoformat(created_at_str + '+00:00').strftime('%Y-%m-%d')
             signups_by_day[day] += 1
         except Exception:
-            pass # Skip users with bad date data
+            pass 
 
     chart_labels = []
     chart_data = []
@@ -688,16 +701,27 @@ def get_admin_stats():
     chart_labels.reverse()
     chart_data.reverse()
 
-    # 3. Get Total Coins & Transactions
     total_coins = 0
     total_transactions = 0
     all_user_data = db.collection('user_data').stream()
     for user_data_doc in all_user_data:
-        profiles = user_data_doc.to_dict().get('profiles', {})
-        for profile in profiles.values():
-            txns = profile.get('transactions', [])
-            total_transactions += len(txns)
-            for t in txns:
+        doc_data = user_data_doc.to_dict()
+        if doc_data is None:
+            continue
+            
+        profiles = doc_data.get('profiles', {})
+        
+        # --- Handle both old and new data structures ---
+        if profiles:
+            for profile in profiles.values():
+                txns = profile.get('transactions', [])
+                total_transactions += len(txns)
+                for t in txns:
+                    total_coins += t.get('amount', 0)
+        elif 'transactions' in doc_data:
+             txns = doc_data.get('transactions', [])
+             total_transactions += len(txns)
+             for t in txns:
                 total_coins += t.get('amount', 0)
                 
     return jsonify({
@@ -713,14 +737,12 @@ def get_admin_stats():
         'success': True
     })
 
-# --- MODIFIED: Admin Users route to get all data ---
 @app.route('/api/admin/users')
 @admin_required
 def get_admin_users():
     users_ref = db.collection('users')
     data_ref = db.collection('user_data')
     
-    # 1. Get all user auth data (for username, created_at)
     users_query = users_ref.order_by('username_lower').stream()
     users_dict = {}
     for user in users_query:
@@ -734,27 +756,37 @@ def get_admin_users():
             'txn_count': 0
         }
         
-    # 2. Get all user data (for balance, last_updated)
     all_user_data = data_ref.stream()
     for user_data_doc in all_user_data:
         user_id = user_data_doc.id
         if user_id in users_dict:
-            profiles = user_data_doc.to_dict().get('profiles', {})
-            
+            doc_data = user_data_doc.to_dict()
+            if doc_data is None:
+                continue
+
             user_balance = 0
             user_txn_count = 0
             last_updated = 'N/A'
             
-            for profile in profiles.values():
-                txns = profile.get('transactions', [])
-                user_txn_count += len(txns)
+            if 'profiles' in doc_data:
+                profiles = doc_data.get('profiles', {})
+                for profile in profiles.values():
+                    txns = profile.get('transactions', [])
+                    user_txn_count += len(txns)
+                    for t in txns:
+                        user_balance += t.get('amount', 0)
+                    
+                    profile_last_updated = profile.get('last_updated')
+                    if profile_last_updated:
+                        if last_updated == 'N/A' or profile_last_updated > last_updated:
+                            last_updated = profile_last_updated
+            
+            elif 'transactions' in doc_data:
+                txns = doc_data.get('transactions', [])
+                user_txn_count = len(txns)
                 for t in txns:
                     user_balance += t.get('amount', 0)
-                
-                profile_last_updated = profile.get('last_updated')
-                if profile_last_updated:
-                    if last_updated == 'N/A' or profile_last_updated > last_updated:
-                        last_updated = profile_last_updated
+                # No last_updated field in old structure
 
             users_dict[user_id]['balance'] = user_balance
             users_dict[user_id]['txn_count'] = user_txn_count
@@ -771,9 +803,7 @@ def delete_admin_user():
         return jsonify({'success': False, 'error': 'User ID required'}), 400
     
     try:
-        # Delete auth document
         db.collection('users').document(user_id).delete()
-        # Delete user data document
         db.collection('user_data').document(user_id).delete()
         return jsonify({'success': True})
     except Exception as e:
@@ -782,7 +812,7 @@ def delete_admin_user():
 # --- Broadcast Routes ---
 
 @app.route('/api/broadcast')
-@login_required # --- NEW: Make this login required ---
+@login_required 
 def get_broadcast():
     try:
         doc = db.collection('app_config').document('broadcast').get()
@@ -797,7 +827,6 @@ def get_broadcast():
 def set_broadcast():
     message = request.json.get('message', '')
     try:
-        # We also save who set it and when
         db.collection('app_config').document('broadcast').set({
             'message': message,
             'set_by': session.get('username'),
