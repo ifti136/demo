@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Coin Tracker</title>
+    <!-- Ensure CSS path is correct -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='images/coin.ico') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="logo"><div class="coin-icon">C</div><span>Coin Tracker</span></div>
+
+            <div class="sidebar-header">
+                <button class="hamburger-btn" id="hamburgerBtn">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+            <nav class="nav">
+                <button class="nav-btn active" data-page="dashboard"><span>📊</span> Dashboard</button>
+                <button class="nav-btn" data-page="analytics"><span>📈</span> Analytics</button>
+                <button class="nav-btn" data-page="history"><span>📋</span> History</button>
+                <button class="nav-btn" data-page="settings"><span>⚙️</span> Settings</button>
+            </nav>
+
+            <div id="adminPanelBtnContainer" class="admin-panel-section" style="display: none;">
+                <a href="/admin" class="nav-btn admin-btn"><span>👑</span> Admin Panel</a>
+            </div>
+            
+            <div class="profile-section">
+                <!-- MODIFIED: Added user display -->
+                <div class="profile-header">
+                    <span class="profile-label">PROFILE</span>
+                    <span id="loggedInUser" class="logged-in-user">Logged in as: <strong id="usernameDisplay">...</strong></span>
+                </div>
+                <div class="profile-selector">
+                    <select id="profileSelect" class="profile-dropdown"></select>
+                    <button id="newProfileBtn" class="btn-secondary profile-btn">＋ New Profile</button>
+                </div>
+            </div>
+            <div class="theme-toggle"><button id="themeToggle">🌙 Dark Mode</button></div>
+            
+            <div class="logout-section">
+                <button id="logoutBtn" class="nav-btn logout-btn"><span>📤</span> Logout</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div id="dashboard" class="page active">
+                <div class="page-header">
+                    <h1 class="page-title">Dashboard</h1> 
+                    <div class="quick-stats">
+                        <div class="stat-item">
+                            <div class="stat-label">Today</div>
+                            <div id="todayEarnings" class="stat-value positive">+0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">This Week</div>
+                            <div id="weekEarnings" class="stat-value positive">+0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">This Month</div>
+                            <div id="monthEarnings" class="stat-value positive">+0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card balance-card">
+                    <div class="balance-header">
+                        <div>
+                            <div class="current-balance-label">Current Balance</div>
+                            <div id="balanceAmount" class="balance-amount">0 coins</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div id="goalText" class="goal-text">Goal: 13,500 coins</div>
+                            <div id="progressPercent" class="progress-percent">0%</div>
+                        </div>
+                    </div>
+                    <div class="progress-bar"><div id="progressBar" class="progress-fill" style="width: 0%;"></div></div>
+
+                    <div id="goalEstimate" class="goal-estimate-text"></div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Quick Actions</h3>
+                        <button id="customizeQuickActions" class="btn-customize">Manage Actions ➔</button>
+                    </div>
+                    <div class="quick-actions-grid">
+                        <!-- Quick actions will be loaded here by app.js -->
+                    </div>
+                </div>
+
+                <!-- 
+                =================================
+                MODIFICATION: Reverted to <select> to match your app.js
+                =================================
+                -->
+                <div class="transaction-row">
+                    <div class="card">
+                        <h3>Add Coins</h3>
+                        <div class="form-group"><label for="addAmount">Amount</label><input type="number" id="addAmount" placeholder="e.g., 100" min="1"></div>
+                        <div class="form-group"><label for="addSource">Source</label>
+                            <!-- This is now a <select> dropdown -->
+                            <select id="addSource">
+                                <option>Event Reward</option>
+                                <option>Login</option>
+                                <option>Daily Games</option>
+                                <option>Campaign Reward</option>
+                                <option>Ads</option>
+                                <option>Achievements</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <button id="addCoinsBtn" class="btn success" style="width: 100%;">Add Coins</button>
+                    </div>
+                    <div class="card">
+                        <h3>Spend Coins</h3>
+                        <div class="form-group"><label for="spendAmount">Amount</label><input type="number" id="spendAmount" placeholder="e.g., 900" min="1"></div>
+                        <div class="form-group"><label for="spendCategory">Category</label>
+                             <!-- This is now a <select> dropdown -->
+                             <select id="spendCategory">
+                                <option>Box Draw</option>
+                                <option>Manager Purchase</option>
+                                <option>Pack Purchase</option>
+                                <option>Store Purchase</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <button id="spendCoinsBtn" class="btn danger" style="width: 100%;">Spend Coins</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="analytics" class="page">
+                <h1 class="page-title">Analytics</h1>
+                <div class="stats-row">
+                     <div class="stat-card"><div class="stat-label">Total Earnings</div><div id="totalEarnings" class="stat-value positive">+0</div></div>
+                     <div class="stat-card"><div class="stat-label">Total Spending</div><div id="totalSpending" class="stat-value negative">-0</div></div>
+                     <div class="stat-card"><div class="stat-label">Net Balance</div><div id="netBalance" class="stat-value primary">0</div></div>
+                </div>
+                <div class="card analytics-tabs">
+                    <div class="tab-headers">
+                        <button class="tab-header active" data-tab="timelinePane">Balance Timeline</button>
+                        <button class="tab-header" data-tab="earningsPane">Earnings Breakdown</button>
+                        <button class="tab-header" data-tab="spendingPane">Spending Breakdown</button>
+                    </div>
+                    <div class="tab-content">
+                        <div id="timelinePane" class="tab-pane active">
+                            <div class="chart-container">
+                                <h3>Balance Over Time</h3>
+                                <div class="chart-wrapper"><canvas id="timelineChart"></canvas></div>
+                            </div>
+                        </div>
+                        <div id="earningsPane" class="tab-pane">
+                            <div class="chart-container">
+                                <h3>Earnings by Source</h3>
+                                <div class="chart-wrapper"><canvas id="earningsChart"></canvas></div>
+                            </div>
+                        </div>
+                        <div id="spendingPane" class="tab-pane">
+                            <div class="chart-container">
+                                <h3>Spending by Category</h3>
+                                <div class="chart-wrapper"><canvas id="spendingChart"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="history" class="page">
+                <div class="page-header">
+                    <h1 class="page-title">Transaction History</h1>
+                    <div id="periodSummary" class="period-summary"></div>
+                </div>
+                <div class="card filters">
+                    <div class="filter-group"><label for="dateFrom">From</label><input type="date" id="dateFrom"></div>
+                    <div class="filter-group"><label for="dateTo">To</label><input type="date" id="dateTo"></div>
+                    <div class="filter-group"><label for="historySourceFilter">Source/Category</label><select id="historySourceFilter"><option value="all">All Sources</option></select></div>
+                    <div class="filter-group search-group"><label for="historySearch">Search</label><input type="text" id="historySearch" placeholder="Search by source or amount..."></div>
+                </div>
+                
+                <div id="paginationControlsTop" class="pagination-controls"></div>
+                
+                <div class="card">
+                    <table id="historyTable" class="history-table">
+                        <thead><tr><th>DATE</th><th>TYPE</th><th>SOURCE/CATEGORY</th><th>AMOUNT</th><th>BALANCE AFTER</th></tr></thead>
+                        <tbody id="historyTableBody"></tbody>
+                    </table>
+                </div>
+                
+                <div id="paginationControlsBottom" class="pagination-controls"></div>
+            </div>
+
+            <div id="settings" class="page">
+                <h1 class="page-title">Settings</h1>
+                <div class="card">
+                    <h3>🎯 Goal Setting</h3>
+                    <p>Set your coin collection target</p>
+                    <div id="currentGoalText" class="current-goal"></div>
+                    <div class="form-group goal-input-row">
+                        <input type="number" id="goalInput" placeholder="Enter new goal amount" min="0">
+                        <button id="setGoalBtn" class="btn primary">Update Goal</button>
+                    </div>
+                     <div id="goalProgressText" class="goal-progress-text"></div>
+                </div>
+                 
+                 <div class="card">
+                    <h3>⚡ Manage Quick Actions</h3>
+                    <p>Add or remove buttons from your dashboard.</p>
+                    
+                    <div class="quick-action-form">
+                        <div class="form-group">
+                            <label for="quickActionText">Action Text</label>
+                            <input type="text" id="quickActionText" placeholder="e.g., Daily Login">
+                        </div>
+                        <div class="form-group">
+                            <label for="quickActionAmount">Amount</label>
+                            <input type="number" id="quickActionAmount" placeholder="e.g., 50" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="quickActionType">Type</label>
+                            <select id="quickActionType">
+                                <option value="positive">Income (+)</option>
+                                <option value="negative">Expense (-)</option>
+                            </select>
+                        </div>
+                        <button id="addQuickActionBtn" class="btn primary">Add Action</button>
+                    </div>
+                    
+                    <div class="modal-divider"></div>
+                    <h4>Current Actions</h4>
+                    <div id="quickActionList" class="quick-action-list">
+                        <!-- Items will be populated by JS -->
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>💾 Data Management</h3>
+                    <p>Export, import, or backup your data</p>
+                    <div class="data-buttons">
+                        <button id="exportDataBtn" class="btn secondary">📤 Export Data</button>
+                        <button id="importDataBtn" class="btn secondary">📥 Import Data</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>🌐 Online Sync</h3>
+                    <p>Firebase connection status</p>
+                    <div id="onlineStatus" class="online-status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="transactionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3 class="modal-title"></h3><span class="close">&times;</span></div>
+            <div class="modal-body">
+                <input type="hidden" id="transactionId" />
+                <div class="form-group"><label for="transactionDate">Date & Time</label><input type="datetime-local" id="transactionDate"></div>
+                <div class="form-group"><label for="transactionAmount">Amount</label><input type="number" id="transactionAmount" min="1" required></div>
+                <div class="form-group"><label for="transactionSource" id="sourceLabel">Source</label><input type="text" id="transactionSource" required></div>
+            </div>
+            <div class="modal-footer"><button id="saveTransactionBtn" class="btn primary">Save Transaction</button></div>
+        </div>
+    </div>
+
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3 class="modal-title">Create New Profile</h3><span class="close">&times;</span></div>
+            <div class="modal-body"><div class="form-group"><label for="newProfileName">Profile Name</label><input type="text" id="newProfileName" placeholder="Enter profile name"></div></div>
+            <div class="modal-footer"><button id="createProfileBtn" class="btn primary">Create Profile</button></div>
+        </div>
+    </div>
+    <div id="toast" class="toast"></div>
+    <!-- Ensure JS path is correct -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
