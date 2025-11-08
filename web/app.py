@@ -448,15 +448,17 @@ def get_all_data():
         if t.get('amount', 0) > 0:
             total_earnings += t['amount']
             
-           try:
+            try:
                 t_date_obj = datetime.fromisoformat(t['date'].replace('Z', '+00:00'))
 
+                # --- FIX: If the datetime is naive (no timezone), assign UTC ---
                 if t_date_obj.tzinfo is None:
                     t_date_obj = t_date_obj.replace(tzinfo=timezone.utc)
+                # --- END OF FIX ---
 
                 if first_earning_date is None or t_date_obj < first_earning_date:
                     first_earning_date = t_date_obj
-
+                
                 t_date_stats = t_date_obj.date()
                 if t_date_stats == today: today_earn += t['amount']
                 if t_date_stats >= week_start: week_earn += t['amount']
