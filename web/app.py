@@ -431,19 +431,6 @@ def get_all_data():
         elif avg_daily_earnings > 0:
             estimated_days = int(amount_remaining / avg_daily_earnings)
     
-    for t in transactions:
-        if t.get('amount', 0) > 0:
-            try:
-                t_date_str = t.get('date', '')
-                if not t_date_str: continue
-                t_date = datetime.fromisoformat(t_date_str.replace('Z', '+00:00')).date()
-                
-                if t_date == today: today_earn += t['amount']
-                if t_date >= week_start: week_earn += t['amount']
-                if t_date >= month_start: month_earn += t['amount']
-            except (ValueError, TypeError): pass
-            
-    total_earnings = sum(t['amount'] for t in transactions if t['amount'] > 0)
     total_spending = abs(sum(t['amount'] for t in transactions if t['amount'] < 0))
     
     earnings_breakdown = defaultdict(int)
