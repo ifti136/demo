@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<!-- MODIFICATION: data-theme is now set by the script -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Panel - Coin Tracker</title>
+    
+    <!-- MODIFICATION: Added Icon -->
+    <link rel="icon" href="{{ url_for('static', filename='images/coin.ico') }}">
+
+    <!-- MODIFICATION: Added theme-setting script -->
+    <script>
+        (function() {
+            try {
+                const theme = localStorage.getItem('theme') || 'light';
+                document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/admin.css') }}"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="admin-container">
+      <header class="admin-header">
+        <h1>Admin Panel</h1>
+        <a href="/" class="btn secondary">Back to App</a>
+      </header>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Users</div>
+          <div id="totalUsers" class="stat-value primary">...</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Coins Tracked</div>
+          <div id="totalCoins" class="stat-value positive">...</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Transactions</div>
+          <div id="totalTransactions" class="stat-value">...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>New Users (Last 30 Days)</h3>
+        <div class="chart-wrapper">
+          <canvas id="newUsersChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Broadcast Message</h3>
+        <p>
+          This message will show as a toast for all users when they load the
+          app.
+        </p>
+        <div class="broadcast-form">
+          <input
+            type="text"
+            id="broadcastMessage"
+            placeholder="Enter message... (leave blank to clear)"
+          />
+          <button id="setBroadcastBtn" class="btn primary">
+            Set Broadcast
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>User Management</h3>
+        <input
+          type="text"
+          id="userSearch"
+          placeholder="Search by username..."
+          class="form-group-input"
+        />
+        
+        <div id="paginationControlsTop" class="pagination-controls"></div>
+
+        <div class="table-wrapper">
+          <table class="user-table">
+            <thead>
+              <tr>
+                <th data-sort="username">Username</th>
+                <th data-sort="balance">Current Balance</th>
+                <th data-sort="txn_count">Txn Count</th>
+                <th data-sort="last_updated">Last Updated</th>
+                <th data-sort="created_at">Created On</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody"></tbody>
+          </table>
+        </div>
+
+        <div id="paginationControlsBottom" class="pagination-controls"></div>
+      </div>
+    </div>
+    <div id="toast" class="toast"></div>
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+  </body>
+</html>
