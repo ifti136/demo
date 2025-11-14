@@ -408,6 +408,7 @@ body {
 }
 
 /* --- NEW: History Table Action Buttons --- */
+.history-table th.history-actions-header,
 .history-table td.history-actions {
     text-align: right;
     white-space: nowrap;
