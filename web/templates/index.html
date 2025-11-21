@@ -94,7 +94,6 @@
                     </div>
                 </div>
 
-                <!-- --- NEW ACHIEVEMENT CARD --- -->
                 <div class="card">
                     <div class="card-header">
                         <h3>🏆 Achievements</h3>
@@ -104,7 +103,6 @@
                         <p id="no-achievements-msg">No achievements unlocked yet. Keep going!</p>
                     </div>
                 </div>
-                <!-- --- END NEW CARD --- -->
 
                 <div class="transaction-row">
                     <div class="card">
@@ -141,50 +139,6 @@
                 <div class="dashboard-footer">
                     <button id="supportBtn" class="btn-text">By Ifti • Buy me a coffee ☕</button>
                 </div>
-            </div>
-
-<div id="supportModal" class="modal">
-    <div class="modal-content support-modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">Buy me a Coffee ☕</h3>
-            <span class="close">&times;</span>
-        </div>
-        <div class="modal-body">
-            <p class="support-text">If you find this app useful for your Efootball tracking, consider supporting the dev!</p>
-            
-            <div class="donation-grid">
-    <div class="donation-card bkash">
-        <div class="card-brand">
-            <span class="brand-name">bKash</span>
-            <img src="{{ url_for('static', filename='images/bkash.png') }}" alt="bKash" class="brand-logo">
-        </div>
-        <div class="card-number">01X XX XXX XXX</div>
-        <div class="card-type">Personal • Send Money</div>
-    </div>
-
-    <div class="donation-card nagad">
-        <div class="card-brand">
-            <span class="brand-name">Nagad</span>
-            <img src="{{ url_for('static', filename='images/nagad.png') }}" alt="Nagad" class="brand-logo">
-        </div>
-        <div class="card-number">01X XX XXX XXX</div>
-        <div class="card-type">Personal • Send Money</div>
-    </div>
-
-    <div class="donation-card rocket">
-        <div class="card-brand">
-            <span class="brand-name">Rocket</span>
-            <img src="{{ url_for('static', filename='images/rocket.png') }}" alt="Rocket" class="brand-logo">
-        </div>
-        <div class="card-number">01X XX XXX XXX-X</div>
-        <div class="card-type">Personal • Send Money</div>
-    </div>
-</div>
-            
-            <p class="support-note">Tap a card to copy the number!</p>
-        </div>
-    </div>
-</div>
             </div>
 
             <div id="analytics" class="page">
@@ -308,6 +262,49 @@
         </div>
     </div>
     
+    <div id="supportModal" class="modal">
+        <div class="modal-content support-modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Buy me a Coffee ☕</h3>
+                <span class="close">&times;</span>
+            </div>
+                <div class="modal-body">
+                    <p class="support-text">If you find this app useful for your Efootball tracking, consider supporting the dev!</p>
+                        
+                    <div class="donation-grid">
+                        <div class="donation-card bkash">
+                            <div class="card-brand">
+                                <span class="brand-name">bKash</span>
+                                <img src="{{ url_for('static', filename='images/bkash.png') }}" alt="bKash" class="brand-logo">
+                            </div>
+                            <div class="card-number">01678713786</div>
+                            <div class="card-type">Personal • Send Money</div>
+                        </div>
+
+                        <div class="donation-card nagad">
+                            <div class="card-brand">
+                                <span class="brand-name">Nagad</span>
+                                <img src="{{ url_for('static', filename='images/nagad.png') }}" alt="Nagad" class="brand-logo">
+                            </div>
+                            <div class="card-number">01678713786</div>
+                            <div class="card-type">Personal • Send Money</div>
+                        </div>
+
+                        <div class="donation-card rocket">
+                            <div class="card-brand">
+                                <span class="brand-name">Rocket</span>
+                                <img src="{{ url_for('static', filename='images/rocket.png') }}" alt="Rocket" class="brand-logo">
+                            </div>
+                            <div class="card-number">01678713786</div>
+                            <div class="card-type">Personal • Send Money</div>
+                        </div>
+                    </div>
+            
+                    <p class="support-note">Tap a card to copy the number!</p>
+                </div>
+        </div>
+    </div>
+
     <div id="transactionModal" class="modal">
         <div class="modal-content">
             <div class="modal-header"><h3 class="modal-title"></h3><span class="close">&times;</span></div>
@@ -328,7 +325,9 @@
             <div class="modal-footer"><button id="createProfileBtn" class="btn primary">Create Profile</button></div>
         </div>
     </div>
+
     <div id="toast" class="toast"></div>
+    
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
