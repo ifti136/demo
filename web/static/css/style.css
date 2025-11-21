@@ -267,6 +267,7 @@ body {
 .page-title {
   font-size: 24px;
   font-weight: 700;
+  margin-bottom: 20px;
 }
 .quick-stats {
   display: flex;
