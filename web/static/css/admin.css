@@ -1,0 +1,100 @@
+.admin-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 30px;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.admin-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 350px;
+    width: 100%;
+}
+
+.broadcast-form {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+.broadcast-form input {
+    flex-grow: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+}
+
+.form-group-input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    margin-bottom: 20px;
+}
+
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    min-width: 760px; 
+}
+
+.user-table th,
+.user-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.user-table th {
+    /* Use theme variable */
+    background: var(--table-header);
+    color: var(--muted-color);
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.user-table td {
+    color: var(--text-color);
+    font-size: 13px;
+}
+
+.user-table .btn {
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+.user-table .btn.danger {
+    margin-left: 8px;
+}
+
+/* Match theme colors */
+.admin-container .stat-card .stat-value.positive {
+    color: var(--success-color);
+}
+.admin-container .stat-card .stat-value.primary {
+    color: var(--primary-color);
+}
+.admin-container .user-table .amount-positive {
+    color: var(--success-color);
+    font-weight: 600;
+}
+.admin-container .user-table .amount-negative {
+    color: var(--danger-color);
+    font-weight: 600;
+}

@@ -1,0 +1,176 @@
+:root {
+  --primary-color: #3b82f6;
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --bg-color: #f8fafc;
+  --text-color: #1e293b;
+  --muted-color: #64748b;
+  --border-color: rgba(226, 232, 240, 0.7);
+  --card-bg: rgba(255, 255, 255, 0.4);
+  --body-gradient: linear-gradient(125deg, #c3aed6, #f0abfc, #a1c4fd, #fdf8c8);
+}
+
+[data-theme="dark"] {
+  --primary-color: #60a5fa;
+  --success-color: #34d399;
+  --danger-color: #f87171;
+  --bg-color: #1a1d23;
+  --text-color: #e2e8f0;
+  --muted-color: #94a3b8;
+  --border-color: rgba(58, 65, 82, 0.7);
+  --card-bg: rgba(37, 42, 51, 0.4);
+  --body-gradient: linear-gradient(125deg, #1e1b3a, #4a0f4b, #0b3a5d, #4e4a2e);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body { 
+  font-family: 'Inter', system-ui, sans-serif; 
+  background: var(--body-gradient); 
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
+  color: var(--text-color);
+  
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.logo { 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    font-size: 20px; 
+    font-weight: 700; 
+    color: var(--text-color);
+    justify-content: center;
+    margin-bottom: 20px;
+}
+.coin-icon { 
+    width: 32px; 
+    height: 32px; 
+    background: #f59e0b; 
+    border-radius: 8px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    color: white; 
+    font-weight: bold; 
+}
+
+.auth-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 30px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 400px;
+    border: 1px solid var(--border-color);
+}
+
+.auth-card h2 {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 20px;
+}
+
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+.form-group input { 
+    width: 100%; 
+    padding: 10px; 
+    border-radius: 8px; 
+    border: 1px solid var(--border-color); 
+    background: var(--bg-color); 
+    color: var(--text-color); 
+}
+
+.auth-error {
+    color: var(--danger-color);
+    font-size: 13px;
+    height: 20px;
+    text-align: center;
+}
+.auth-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+.btn, .btn-link { 
+    padding: 10px 12px;
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-weight: 600; 
+    border: 1px solid transparent;
+    font-size: 14px;
+}
+.btn.primary { background: var(--primary-color); color: white; border: none; }
+.btn.primary:disabled {
+    background: var(--muted-color);
+    cursor: wait;
+}
+.btn-link {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+/* Toast (copied from style.css) */
+.toast { 
+    position: fixed; 
+    bottom: 20px; 
+    left: 50%; 
+    transform: translateX(-50%); 
+    padding: 16px 24px; 
+    border-radius: 8px; 
+    color: white; 
+    font-weight: 600; 
+    z-index: 1001; 
+    opacity: 0; 
+    transition: all 0.3s ease; 
+    transform: translateX(-50%) translateY(20px);
+}
+.toast.show { 
+    opacity: 1; 
+    transform: translateX(-50%) translateY(0);
+}
+.toast.success { background: var(--success-color); }
+.toast.error { background: var(--danger-color); }
+
+/* --- MODIFICATION: Added Theme Toggle Button Style --- */
+.theme-toggle-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-color);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+.theme-toggle-btn:hover {
+  background: var(--bg-color);
+  transform: scale(1.1);
+}
